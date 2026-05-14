@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energy LED · Lighting Simulator</title>
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+#root { min-height: 100vh; }
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+/* Override any remaining dark backgrounds */
+.min-h-screen { background: #ffffff !important; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div style="min-height:100vh;background:#fff;display:flex;align-items:center;justify-content:center;color:#6b7280;font-family:sans-serif;font-size:14px;">
+    Loading Lighting Simulator...
+  </div>
+</div>
+
+<script>
+(function() {
+  function icon(d, extra) {
+    return function(props) {
+      var p = props || {};
+      var sz = p.size || p.width || 16;
+      var cls = (p.className || '');
+      var children = [React.createElement('path', { key:'p', d: d })];
+      if (extra) children.push(React.createElement('path', { key:'e', d: extra }));
+      return React.createElement('svg', {
+        xmlns: 'http://www.w3.org/2000/svg',
+        width: sz, height: sz, viewBox: '0 0 24 24',
+        fill: 'none', stroke: 'currentColor',
+        strokeWidth: p.strokeWidth || 2,
+        strokeLinecap: 'round', strokeLinejoin: 'round',
+        className: cls, style: p.style || {}
+      }, children);
+    };
+  }
+  window.Settings = icon('M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z');
+  window.Sun = icon('M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41', 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z');
+  window.ArrowDownToLine = icon('M12 17V3M6 11l6 6 6-6M19 21H5');
+  window.Zap = icon('M13 2 3 14h9l-1 8 10-12h-9l1-8z');
+  window.Clock = icon('M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2');
+  window.Maximize = icon('M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3');
+  window.Activity = icon('M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2');
+  window.Info = icon('M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01');
+  window.Grid = icon('M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z');
+  window.Box = icon('M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z');
+  window.PanelLeftClose = icon('M22 3H2M22 21H2M18 3v18M8 9l-3 3 3 3');
+  window.PanelLeftOpen = icon('M22 3H2M22 21H2M6 3v18M14 9l3 3-3 3');
+  window.Download = icon('M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3');
+})();
+</script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo } = React;
+const { Settings, Sun, ArrowDownToLine, Zap, Clock, Maximize, Activity, Info, Grid, Box, PanelLeftClose, PanelLeftOpen, Download } = window;
+
+
+// --- IES CANDELA DATA ---
+
+// GreenPerform G5 Wide Beam (WB)
+const LDC_G5_15K_WB = [8554.8, 8552.7, 8550.45, 8545.65, 8536.8, 8523.75, 8505.45, 8483.7, 8448.6, 8396.55, 8323.05, 8220.45, 8087.7, 7926.0, 7725.3, 7482.6, 7185.3, 6825.75, 6394.35, 5889.6, 5304.9, 4658.85, 3963.45, 3254.25, 2551.65, 1903.95, 1348.5, 931.2, 657.75, 498.15, 403.5, 341.85, 295.5, 258.45, 227.1, 200.1, 175.65, 151.95, 145.8, 108.3, 86.85, 64.8, 42.3, 21.6, 4.8, 0.0];
+const LDC_G5_10K_WB = LDC_G5_15K_WB.map(v => v * 0.666667);
+const LDC_G5_20K_WB = [11553.8, 11559.6, 11561.6, 11557.8, 11547.2, 11533.8, 11516.8, 11496.0, 11457.4, 11398.6, 11314.6, 11197.4, 11042.8, 10846.4, 10598.2, 10290.4, 9905.8, 9430.8, 8854.0, 8175.2, 7403.6, 6524.6, 5512.0, 4331.4, 3042.2, 1885.8, 1111.4, 737.8, 586.4, 506.4, 448.2, 399.8, 359.0, 324.2, 292.4, 262.2, 232.4, 203.0, 174.8, 146.6, 117.8, 88.2, 58.0, 29.6, 7.0, 0.0];
+const LDC_G5_25K_WB = [14396.75, 14398.25, 14387.0, 14376.5, 14356.25, 14331.25, 14303.0, 14261.75, 14202.75, 14130.75, 14032.25, 13906.0, 13741.0, 13521.25, 13238.25, 12888.0, 12435.5, 11853.5, 11136.5, 10265.25, 9223.0, 8028.5, 6688.25, 5293.5, 3902.25, 2652.75, 1660.25, 1044.5, 736.0, 598.75, 520.5, 462.0, 414.5, 376.25, 342.75, 311.5, 281.0, 250.75, 220.75, 189.25, 153.25, 116.5, 81.5, 47.0, 15.25, 0.0];
+const LDC_G5_30K_WB = [17276.1, 17277.9, 17264.4, 17251.8, 17227.5, 17197.5, 17163.6, 17114.1, 17043.3, 16956.9, 16838.7, 16687.2, 16489.2, 16225.5, 15885.9, 15465.6, 14922.6, 14224.2, 13363.8, 12318.3, 11067.6, 9634.2, 8025.9, 6352.2, 4682.7, 3183.3, 1992.3, 1253.4, 883.2, 718.5, 624.6, 554.4, 497.4, 451.5, 411.3, 373.8, 337.2, 300.9, 264.9, 227.1, 183.9, 139.8, 97.8, 56.4, 18.3, 0.0];
+
+// GreenPerform G5 Narrow Beam (NB)
+const LDC_G5_15K_NB = [19755.45, 19691.55, 19536.75, 19268.85, 18882.0, 18385.8, 17797.8, 17128.2, 16362.0, 15499.35, 14531.1, 13444.8, 12214.35, 10815.3, 9225.75, 7499.85, 5760.6, 4171.05, 2865.0, 1865.1, 1148.1, 710.85, 507.0, 423.75, 381.0, 351.0, 325.35, 304.2, 287.1, 271.05, 252.0, 232.8, 217.2, 206.1, 191.4, 172.5, 154.35, 138.3, 121.35, 104.1, 84.9, 64.65, 44.7, 26.1, 9.3, 0.0];
+const LDC_G5_10K_NB = LDC_G5_15K_NB.map(v => v * 0.666667);
+const LDC_G5_20K_NB = [25407.4, 25333.2, 25126.6, 24809.2, 24357.8, 23797.8, 23105.6, 22314.2, 21395.6, 20350.4, 19182.6, 17864.2, 16364.6, 14650.4, 12666.6, 10467.0, 8128.0, 5929.0, 4082.4, 2696.6, 1704.4, 1053.4, 701.2, 549.4, 478.0, 433.6, 397.6, 368.4, 344.4, 323.2, 298.4, 274.4, 254.2, 242.6, 229.2, 208.0, 184.8, 164.2, 143.0, 121.2, 97.6, 73.6, 50.2, 28.4, 9.8, 0.0];
+const LDC_G5_25K_NB = [33289.5, 33207.25, 32935.25, 32506.0, 31893.5, 31130.25, 30188.0, 29079.5, 27804.25, 26374.0, 24752.25, 22920.5, 20803.75, 18363.5, 15546.25, 12405.25, 9201.5, 6353.0, 4129.75, 2599.5, 1617.5, 1073.5, 812.0, 691.5, 623.5, 573.5, 533.0, 502.75, 478.25, 449.75, 419.25, 393.0, 371.25, 347.25, 316.75, 284.75, 258.5, 234.0, 207.25, 178.25, 146.5, 113.5, 81.5, 49.75, 19.5, 0.0];
+const LDC_G5_30K_NB = [39947.4, 39848.7, 39522.3, 39007.2, 38272.2, 37356.3, 36225.6, 34895.4, 33365.1, 31648.8, 29702.7, 27504.6, 24964.5, 22036.2, 18655.5, 14886.3, 11041.8, 7623.6, 4955.7, 3119.4, 1941.0, 1288.2, 974.4, 829.8, 748.2, 688.2, 639.6, 603.3, 573.9, 539.7, 503.1, 471.6, 445.5, 416.7, 380.1, 341.7, 310.2, 280.8, 248.7, 213.9, 175.8, 136.2, 97.8, 59.7, 23.4, 0.0];
+
+// GreenPerform Elite (BY718P)
+const LDC_ELITE_10K_NB = [9761.4, 9809.7, 9930.9, 10042.8, 10062.4, 9944.3, 9642.4, 9108.4, 8303.8, 7247.6, 6035.0, 4830.6, 3783.0, 2966.8, 2360.1, 1911.8, 1582.3, 1333.4, 1143.8, 987.4, 857.7, 749.1, 655.5, 575.2, 505.5, 443.5, 387.4, 334.2, 281.6, 232.3, 186.7, 147.5, 113.2, 79.9, 47.0, 17.9, 1.5];
+const LDC_ELITE_10K_WB = [4085.6, 4089.0, 4100.9, 4128.5, 4176.2, 4246.9, 4347.3, 4484.6, 4650.5, 4819.2, 4951.7, 4995.5, 4878.1, 4564.7, 4098.9, 3576.0, 3078.4, 2634.4, 2235.5, 1882.2, 1571.8, 1308.2, 1093.4, 912.3, 764.2, 640.0, 534.4, 441.6, 356.1, 282.0, 218.1, 165.8, 123.1, 84.7, 48.8, 18.4, 1.8];
+const LDC_ELITE_15K_NB = [14682.75, 14714.4, 14782.5, 14805.15, 14728.8, 14515.95, 14103.6, 13381.5, 12234.75, 10656.0, 8812.05, 7003.8, 5476.35, 4320.9, 3485.25, 2877.6, 2423.25, 2071.2, 1790.4, 1558.35, 1365.9, 1203.45, 1062.9, 940.65, 832.95, 735.6, 646.65, 563.4, 481.8, 403.05, 327.15, 255.75, 193.2, 137.1, 84.75, 35.85, 1.95];
+const LDC_ELITE_15K_WB = [6859.5, 6858.0, 6859.05, 6865.65, 6887.85, 6932.1, 6997.65, 7077.15, 7162.35, 7230.75, 7237.65, 7120.35, 6825.3, 6351.0, 5736.3, 5053.35, 4386.45, 3770.55, 3215.7, 2736.3, 2323.8, 1971.6, 1673.4, 1426.5, 1222.5, 1047.0, 895.05, 761.55, 640.2, 528.15, 424.95, 330.6, 249.75, 178.2, 109.5, 44.85, 2.4];
+const LDC_ELITE_20K_NB = [17689.6, 17797.8, 18096.4, 18511.6, 18906.0, 19074.8, 18839.0, 18066.8, 16669.0, 14649.6, 12205.4, 9714.8, 7546.0, 5874.2, 4663.8, 3794.4, 3159.0, 2677.8, 2300.6, 2000.6, 1752.8, 1548.2, 1374.8, 1225.0, 1092.8, 973.4, 862.2, 756.8, 652.2, 550.6, 450.6, 354.2, 266.4, 190.0, 118.0, 50.8, 3.0];
+const LDC_ELITE_20K_WB = [9002.4, 9006.0, 9025.8, 9067.6, 9140.8, 9246.8, 9378.2, 9516.8, 9642.8, 9725.6, 9707.0, 9513.8, 9090.8, 8432.8, 7603.0, 6687.2, 5782.8, 4950.4, 4215.6, 3581.2, 3045.4, 2597.2, 2220.0, 1903.8, 1638.8, 1412.6, 1221.6, 1049.4, 889.4, 741.6, 601.8, 471.0, 351.6, 249.2, 151.4, 61.6, 3.2];
+const LDC_ELITE_25K_WB = [11448.25, 11426.0, 11360.75, 11266.75, 11158.5, 11043.75, 10930.5, 10829.75, 10728.75, 10633.25, 10539.75, 10429.75, 10239.75, 9923.5, 9391.0, 8647.75, 7735.75, 6770.5, 5838.0, 5002.0, 4274.5, 3654.25, 3129.75, 2684.75, 2308.0, 1981.0, 1696.25, 1445.75, 1218.0, 1014.25, 824.5, 646.5, 482.0, 337.25, 208.25, 89.75, 9.0];
+const LDC_ELITE_30K_NB = [27112.5, 27205.8, 27474.3, 27824.7, 28043.7, 27874.2, 27084.0, 25520.7, 23134.2, 20106.0, 16787.7, 13638.3, 10940.7, 8831.1, 7228.8, 6015.9, 5084.1, 4353.9, 3769.2, 3295.2, 2903.4, 2574.0, 2293.5, 2050.8, 1836.3, 1641.0, 1464.3, 1297.8, 1136.1, 978.0, 823.2, 669.3, 517.8, 379.5, 250.8, 118.8, 8.7];
+const LDC_ELITE_30K_WB = [13737.9, 13711.2, 13632.9, 13520.1, 13390.2, 13252.5, 13116.6, 12995.7, 12874.5, 12759.9, 12647.7, 12515.7, 12287.7, 11908.2, 11269.2, 10377.3, 9282.9, 8124.6, 7005.6, 6002.4, 5129.4, 4385.1, 3755.7, 3221.7, 2769.6, 2377.2, 2035.5, 1734.9, 1461.6, 1217.1, 989.4, 775.8, 578.4, 404.7, 249.9, 107.7, 10.8];
+
+// CoreLine Waterproof WT120C (Linear, Asymmetrical: C0 and C90 planes)
+const LDC_WT120C_40S_C0 = [1284, 1284, 1284, 1279, 1271, 1260, 1247, 1231, 1214, 1194, 1172, 1148, 1122, 1094, 1064, 1032, 999, 963, 926, 888, 849, 810, 770, 730, 690, 649, 609, 569, 530, 492, 455, 419, 383, 348, 314, 280, 246, 213, 179, 146, 114, 83, 55, 31, 15, 9];
+const LDC_WT120C_40S_C90 = [1284, 1282, 1279, 1277, 1275, 1280, 1285, 1292, 1299, 1303, 1307, 1311, 1314, 1322, 1329, 1332, 1335, 1317, 1299, 1252, 1204, 1138, 1072, 997, 918, 835, 753, 670, 594, 524, 462, 408, 360, 320, 287, 259, 236, 218, 204, 194, 188, 183, 178, 172, 163, 151];
+const LDC_WT120C_60S_C0 = LDC_WT120C_40S_C0.map(v => v * 1.5);
+const LDC_WT120C_60S_C90 = LDC_WT120C_40S_C90.map(v => v * 1.5);
+
+// TM-21 Derived Decay Constants
+const ALPHA_G5 = 1.785e-6;      
+const ALPHA_ELITE = 3.567e-6;   
+const ALPHA_WT120C = 7.133e-6;  
+
+const FIXTURE_MODELS = {
+  'g5': {
+    name: 'GreenPerform G5 Highbay',
+    desc: '87.47% @ 75k hrs (TM-21)',
+    alpha: ALPHA_G5,
+    shape: 'round',
+    lumens: {
+      '10k': { name: '10,000 lm', beams: { 'wb': { name: 'Wide Beam (90°)', candela: LDC_G5_10K_WB, step: 2, angle: Math.PI/4 }, 'nb': { name: 'Narrow Beam (60°)', candela: LDC_G5_10K_NB, step: 2, angle: Math.PI/6 } } },
+      '15k': { name: '15,000 lm', beams: { 'wb': { name: 'Wide Beam (90°)', candela: LDC_G5_15K_WB, step: 2, angle: Math.PI/4 }, 'nb': { name: 'Narrow Beam (60°)', candela: LDC_G5_15K_NB, step: 2, angle: Math.PI/6 } } },
+      '20k': { name: '20,000 lm', beams: { 'wb': { name: 'Wide Beam (90°)', candela: LDC_G5_20K_WB, step: 2, angle: Math.PI/4 }, 'nb': { name: 'Narrow Beam (60°)', candela: LDC_G5_20K_NB, step: 2, angle: Math.PI/6 } } },
+      '25k': { name: '25,000 lm', beams: { 'wb': { name: 'Wide Beam (90°)', candela: LDC_G5_25K_WB, step: 2, angle: Math.PI/4 }, 'nb': { name: 'Narrow Beam (60°)', candela: LDC_G5_25K_NB, step: 2, angle: Math.PI/6 } } },
+      '30k': { name: '30,000 lm', beams: { 'wb': { name: 'Wide Beam (90°)', candela: LDC_G5_30K_WB, step: 2, angle: Math.PI/4 }, 'nb': { name: 'Narrow Beam (60°)', candela: LDC_G5_30K_NB, step: 2, angle: Math.PI/6 } } }
+    }
+  },
+  'elite': {
+    name: 'GreenPerform Highbay Elite',
+    desc: '70% @ 100k hrs (BY718P)',
+    alpha: ALPHA_ELITE,
+    shape: 'round',
+    lumens: {
+      '10k': { name: '10,000 lm', beams: { 'wb': { name: 'Wide Beam', candela: LDC_ELITE_10K_WB, step: 2.5, angle: Math.PI/4 }, 'nb': { name: 'Narrow Beam', candela: LDC_ELITE_10K_NB, step: 2.5, angle: Math.PI/6 } } },
+      '15k': { name: '15,000 lm', beams: { 'wb': { name: 'Wide Beam', candela: LDC_ELITE_15K_WB, step: 2.5, angle: Math.PI/4 }, 'nb': { name: 'Narrow Beam', candela: LDC_ELITE_15K_NB, step: 2.5, angle: Math.PI/6 } } },
+      '20k': { name: '20,000 lm', beams: { 'wb': { name: 'Wide Beam', candela: LDC_ELITE_20K_WB, step: 2.5, angle: Math.PI/4 }, 'nb': { name: 'Narrow Beam (PSD)', candela: LDC_ELITE_20K_NB, step: 2.5, angle: Math.PI/6 } } },
+      '25k': { name: '25,000 lm', beams: { 'wb': { name: 'Wide Beam', candela: LDC_ELITE_25K_WB, step: 2.5, angle: Math.PI/4 } } },
+      '30k': { name: '30,000 lm', beams: { 'wb': { name: 'Wide Beam', candela: LDC_ELITE_30K_WB, step: 2.5, angle: Math.PI/4 }, 'nb': { name: 'Narrow Beam', candela: LDC_ELITE_30K_NB, step: 2.5, angle: Math.PI/6 } } },
+    }
+  },
+  'wt120c': {
+    name: 'CoreLine Waterproof WT120C',
+    desc: '70% @ 50k hrs (L70)',
+    alpha: ALPHA_WT120C,
+    shape: 'linear',
+    lumens: {
+      '4k': { name: 'LED40S - 4000lm (1200mm)', length: 1.2, beams: { 'wb': { name: 'Wide Beam (Batwing)', candelaC0: LDC_WT120C_40S_C0, candelaC90: LDC_WT120C_40S_C90, step: 2, angle: Math.PI/2.5 } } },
+      '6k': { name: 'LED60S - 6000lm (1500mm)', length: 1.5, beams: { 'wb': { name: 'Wide Beam (Batwing)', candelaC0: LDC_WT120C_60S_C0, candelaC90: LDC_WT120C_60S_C90, step: 2, angle: Math.PI/2.5 } } }
+    }
+  }
+};
+
+const getCandelaVal = (thetaRad, phiRad, fixture) => {
+  let exactIdx = (thetaRad * 180 / Math.PI) / fixture.step;
+  let idx1 = Math.floor(exactIdx);
+  let idx2 = Math.ceil(exactIdx);
+  
+  const maxIdx = fixture.candelaC0 ? fixture.candelaC0.length - 1 : fixture.candela.length - 1;
+  if (idx1 > maxIdx) idx1 = maxIdx;
+  if (idx2 > maxIdx) idx2 = maxIdx;
+  let weight = exactIdx - idx1;
+
+  if (fixture.candelaC0 && fixture.candelaC90) {
+    let c0_1 = fixture.candelaC0[idx1];
+    let c0_2 = fixture.candelaC0[idx2];
+    let c0 = c0_1 * (1 - weight) + c0_2 * weight;
+
+    let c90_1 = fixture.candelaC90[idx1];
+    let c90_2 = fixture.candelaC90[idx2];
+    let c90 = c90_1 * (1 - weight) + c90_2 * weight;
+
+    let cos2 = Math.pow(Math.cos(phiRad), 2);
+    let sin2 = Math.pow(Math.sin(phiRad), 2);
+    return c0 * cos2 + c90 * sin2;
+  } else {
+    let c1 = fixture.candela[idx1];
+    let c2 = fixture.candela[idx2];
+    return c1 * (1 - weight) + c2 * weight;
+  }
+};
+
+const getLuxAtPoint = (x, y, height, spacingX, spacingY, fixture) => {
+  let totalLux = 0;
+  const effHeight = Math.max(0.1, height - 0.75); 
+  
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      let fx = i * spacingX;
+      let fy = j * spacingY;
+      let dx = x - fx;
+      let dy = y - fy;
+      let distSq = dx * dx + dy * dy + effHeight * effHeight;
+      let dist = Math.sqrt(distSq);
+      
+      let thetaRad = Math.acos(effHeight / dist);
+      let phiRad = Math.atan2(dx, dy); 
+
+      if (thetaRad <= Math.PI/2) {
+        let I = getCandelaVal(thetaRad, phiRad, fixture);
+        let lux = (I * effHeight / (dist * distSq)) * 1.15;
+        totalLux += lux;
+      }
+    }
+  }
+  return totalLux;
+};
+
+const interpolateColor = (color1, color2, factor) => {
+  const result = [
+    Math.round(color1[0] + factor * (color2[0] - color1[0])),
+    Math.round(color1[1] + factor * (color2[1] - color1[1])),
+    Math.round(color1[2] + factor * (color2[2] - color1[2]))
+  ];
+  return `rgb(${result[0]}, ${result[1]}, ${result[2]})`;
+};
+
+const getHeatmapColor = (lux, targetLux, maxLux) => {
+  const cRedDark = [153, 27, 27];
+  const cRedLight = [252, 165, 165];
+  const cWhite = [255, 255, 255];
+  const cGreenLight = [187, 247, 208];
+  const cGreenDark = [21, 128, 61];
+
+  if (lux < targetLux) {
+    const ratio = Math.max(0, lux / targetLux);
+    if (ratio < 0.5) return interpolateColor(cRedDark, cRedLight, ratio * 2);
+    return interpolateColor(cRedLight, cWhite, (ratio - 0.5) * 2);
+  } else {
+    const cap = Math.max(targetLux * 1.5, maxLux);
+    const ratio = Math.min(1, (lux - targetLux) / (cap - targetLux));
+    if (ratio < 0.5) return interpolateColor(cWhite, cGreenLight, ratio * 2);
+    return interpolateColor(cGreenLight, cGreenDark, (ratio - 0.5) * 2);
+  }
+};
+
+const Heatmap = ({ height, spacingX, spacingY, fixture, targetLux, onStatsChange }) => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    const width = canvas.width; 
+    const h = canvas.height; 
+    
+    const sf = 2; 
+    const padL = 45 * sf;
+    const padB = 35 * sf;
+    const padT = 15 * sf;
+    const padR = 15 * sf;
+    const availW = width - padL - padR;
+    const availH = h - padT - padB;
+    
+    const roomW = spacingX * 3; 
+    const roomH = spacingY * 3; 
+
+    const scale = Math.min(availW / roomW, availH / roomH);
+    const drawW = roomW * scale;
+    const drawH = roomH * scale;
+
+    const offsetX = padL + (availW - drawW) / 2;
+    const offsetY = padT + (availH - drawH) / 2;
+    
+    const resolution = 60; 
+    const luxValues = new Float32Array(resolution * resolution);
+    
+    let minL = Infinity, maxL = -Infinity, sumL = 0;
+    let intMinL = Infinity, intMaxL = -Infinity, intSumL = 0, intCount = 0;
+
+    for (let y = 0; y < resolution; y++) {
+      for (let x = 0; x < resolution; x++) {
+        const px = -1.5 * spacingX + (x / resolution) * roomW;
+        const py = -1.5 * spacingY + (y / resolution) * roomH;
+        
+        const lux = getLuxAtPoint(px, py, height, spacingX, spacingY, fixture);
+        luxValues[y * resolution + x] = lux;
+        
+        if (lux < minL) minL = lux;
+        if (lux > maxL) maxL = lux;
+        sumL += lux;
+
+        if (px >= -spacingX && px <= spacingX && py >= -spacingY && py <= spacingY) {
+          if (lux < intMinL) intMinL = lux;
+          if (lux > intMaxL) intMaxL = lux;
+          intSumL += lux;
+          intCount++;
+        }
+      }
+    }
+
+    const avgL = sumL / (resolution * resolution);
+    const intAvgL = intCount > 0 ? intSumL / intCount : 0;
+    
+    onStatsChange({ 
+      overall: { avg: avgL, min: minL, max: maxL },
+      interior: { avg: intAvgL, min: intMinL === Infinity ? 0 : intMinL, max: intMaxL === -Infinity ? 0 : intMaxL }
+    });
+
+    ctx.clearRect(0, 0, width, h);
+
+    const cellW = drawW / resolution;
+    const cellH = drawH / resolution;
+    
+    for (let y = 0; y < resolution; y++) {
+      for (let x = 0; x < resolution; x++) {
+        const val = luxValues[y * resolution + x];
+        ctx.fillStyle = getHeatmapColor(val, targetLux, maxL);
+        ctx.fillRect(offsetX + x * cellW, offsetY + y * cellH, Math.ceil(cellW), Math.ceil(cellH));
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(18, 134, 66, 0.7)';
+    ctx.lineWidth = 0.5 * sf;
+    
+    const maxCandelaData = fixture.candelaC90 ? Math.max(...fixture.candelaC90) : Math.max(...fixture.candela);
+    const physRMax = Math.min(spacingX, spacingY) / 2.2;
+    const rMaxScaled = physRMax * scale;
+
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        const cx = offsetX + ((i * spacingX + 1.5 * spacingX) / roomW) * drawW;
+        const cy = offsetY + ((j * spacingY + 1.5 * spacingY) / roomH) * drawH;
+        
+        if (fixture.shape === 'linear') {
+           const rectW = 0.2 * scale; 
+           const rectH = fixture.length * scale; 
+           ctx.strokeRect(cx - rectW/2, cy - rectH/2, rectW, rectH);
+        }
+        
+        for(let step = 1; step <= 6; step++) {
+            const thetaRad = (step / 6) * (Math.PI / 2.5);
+            ctx.beginPath();
+            for(let a = 0; a <= 360; a += 5) {
+                const phiRad = a * Math.PI / 180;
+                const candela = getCandelaVal(thetaRad, phiRad, fixture);
+                const rVal = (candela / maxCandelaData) * rMaxScaled;
+                const px = cx + rVal * Math.sin(phiRad);
+                const py = cy - rVal * Math.cos(phiRad); 
+                if (a === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+        
+        for(let a = 0; a < 360; a += 15) {
+            ctx.beginPath();
+            for(let step = 0; step <= 6; step++) {
+                 const thetaRad = (step / 6) * (Math.PI / 2.5);
+                 const phiRad = a * Math.PI / 180;
+                 const candela = getCandelaVal(thetaRad, phiRad, fixture);
+                 const rVal = (candela / maxCandelaData) * rMaxScaled;
+                 const px = cx + rVal * Math.sin(phiRad);
+                 const py = cy - rVal * Math.cos(phiRad);
+                 if (step === 0) ctx.moveTo(px, py);
+                 else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+        }
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3 * sf, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(18, 134, 66, 1)';
+        ctx.fill();
+      }
+    }
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(239, 68, 68, 1)';
+    ctx.lineWidth = 2.5 * sf;
+    ctx.setLineDash([8 * sf, 6 * sf]);
+    ctx.strokeRect(offsetX + drawW/6, offsetY + drawH/6, drawW * (2/3), drawH * (2/3));
+    ctx.restore();
+
+    ctx.fillStyle = '#0f172a'; 
+    ctx.font = `bold ${11 * sf}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const steps = 6;
+    for (let i = 0; i <= steps; i++) {
+      for (let j = 0; j <= steps; j++) {
+        const relX = i / steps;
+        const relY = j / steps;
+        
+        const px = offsetX + (10 * sf) + relX * (drawW - 20 * sf);
+        const py = offsetY + (10 * sf) + relY * (drawH - 20 * sf);
+        
+        const realX = -1.5 * spacingX + ((px - offsetX) / drawW) * roomW;
+        const realY = -1.5 * spacingY + ((py - offsetY) / drawH) * roomH;
+        
+        const lux = getLuxAtPoint(realX, realY, height, spacingX, spacingY, fixture);
+        
+        ctx.shadowColor = 'rgba(255,255,255,0.8)';
+        ctx.shadowBlur = 4 * sf;
+        ctx.fillText(Math.round(lux), px, py);
+        ctx.fillText(Math.round(lux), px, py);
+        ctx.shadowBlur = 0; 
+      }
+    }
+
+    ctx.strokeStyle = '#475569'; 
+    ctx.lineWidth = 1 * sf;
+    ctx.beginPath();
+    ctx.moveTo(offsetX, offsetY);
+    ctx.lineTo(offsetX, offsetY + drawH); 
+    ctx.lineTo(offsetX + drawW, offsetY + drawH); 
+    ctx.stroke();
+
+    ctx.fillStyle = '#94a3b8'; 
+    ctx.font = `${11 * sf}px sans-serif`;
+    const numTicks = 6;
+    for (let i = 0; i <= numTicks; i++) {
+      const valX = (i / numTicks) * roomW;
+      const valY = (i / numTicks) * roomH;
+      
+      const cx = offsetX + (i / numTicks) * drawW;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(`${valX.toFixed(1)}m`, cx, offsetY + drawH + (8 * sf));
+      ctx.fillRect(cx, offsetY + drawH, 1 * sf, 5 * sf); 
+
+      const cy = offsetY + drawH - (i / numTicks) * drawH; 
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${valY.toFixed(1)}m`, offsetX - (8 * sf), cy);
+      ctx.fillRect(offsetX - (5 * sf), cy, 5 * sf, 1 * sf); 
+    }
+
+  }, [height, spacingX, spacingY, fixture, targetLux, onStatsChange]);
+
+  return (
+    <div className="w-full h-full flex flex-col gap-2 relative">
+      <div className="w-full flex-1 relative flex items-center justify-center rounded-lg overflow-hidden bg-gray-50 border border-gray-300">
+        <canvas ref={canvasRef} width={1100} height={1000} className="max-w-full max-h-full w-full h-auto bg-white" />
+        <div className="absolute top-2 right-2 bg-gray-50/80 backdrop-blur text-xs px-2 py-1 rounded text-gray-700 border border-gray-300 shadow-sm">
+          Area: {spacingX * 3}m x {spacingY * 3}m
+        </div>
+      </div>
+      
+      <div className="bg-gray-50 border border-gray-300 rounded p-2 flex flex-col gap-1">
+        <div className="flex justify-between text-[10px] text-gray-500 font-medium px-1">
+          <span>Under Target (Red)</span>
+          <span className="text-gray-800">Target: {targetLux} lx</span>
+          <span>Over Target (Green)</span>
+        </div>
+        <div className="h-3 w-full rounded border border-gray-200" style={{
+          background: `linear-gradient(to right, 
+            ${getHeatmapColor(0, targetLux, targetLux * 2)},
+            ${getHeatmapColor(targetLux * 0.5, targetLux, targetLux * 2)},
+            ${getHeatmapColor(targetLux, targetLux, targetLux * 2)},
+            ${getHeatmapColor(targetLux * 1.5, targetLux, targetLux * 2)},
+            ${getHeatmapColor(targetLux * 2, targetLux, targetLux * 2)}
+          )`
+        }}></div>
+      </div>
+    </div>
+  );
+};
+
+const ThreeDView = ({ height, spacingX, spacingY, fixture }) => {
+  const containerRef = useRef(null);
+  
+  useEffect(() => {
+    let active = true;
+    let renderer, scene, camera, animationId, resizeObserver;
+    const container = containerRef.current;
+
+    const initScene = (THREE) => {
+      if (!active || !container) return;
+      container.innerHTML = ''; 
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf1f5f9);
+
+      const width = container.clientWidth || 800;
+      const hHeight = container.clientHeight || 500;
+      camera = new THREE.PerspectiveCamera(50, width / hHeight, 0.1, 1000);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+      renderer.setSize(width, hHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      const makeTextSprite = (message) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)'; 
+        ctx.fillRect(0, 0, 128, 64);
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, 128, 64);
+        
+        ctx.fillStyle = '#f8fafc'; 
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(message, 64, 32);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+        const sprite = new THREE.Sprite(spriteMaterial);
+        
+        const spriteScale = Math.max(2.5, Math.max(spacingX, spacingY) * 0.15);
+        sprite.scale.set(spriteScale * 2, spriteScale, 1); 
+        return sprite;
+      };
+
+      // Floor
+      const floorW = spacingX * 4;
+      const floorH = spacingY * 4;
+      const planeGeo = new THREE.PlaneGeometry(floorW, floorH);
+      const planeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+      const plane = new THREE.Mesh(planeGeo, planeMat);
+      plane.rotation.x = -Math.PI / 2;
+      plane.receiveShadow = true;
+      scene.add(plane);
+
+      // Grid Helpers
+      const maxFloor = Math.max(floorW, floorH);
+      const gridHelper = new THREE.GridHelper(maxFloor, Math.ceil(maxFloor / (Math.min(spacingX, spacingY)/2)), 0x475569, 0xf8fafc);
+      gridHelper.position.y = 0.05;
+      scene.add(gridHelper);
+
+      // Distance Axis Markers
+      const numTicks = 3;
+      const roomDimX = spacingX * 3;
+      const roomDimY = spacingY * 3;
+      for (let i = 0; i <= numTicks; i++) {
+        const xPos = -1.5 * spacingX + (i / numTicks) * roomDimX;
+        const xLabel = makeTextSprite(`${(xPos + 1.5 * spacingX).toFixed(1)}m`);
+        xLabel.position.set(xPos, 0.5, 1.5 * spacingY + 1.5); 
+        scene.add(xLabel);
+
+        const zPos = -1.5 * spacingY + (i / numTicks) * roomDimY;
+        const zLabel = makeTextSprite(`${(roomDimY - (zPos + 1.5 * spacingY)).toFixed(1)}m`);
+        zLabel.position.set(-1.5 * spacingX - 1.5, 0.5, zPos); 
+        scene.add(zLabel);
+      }
+
+      // Interior Area Box
+      const boxGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(spacingX * 2, spacingY * 2));
+      const boxMat = new THREE.LineDashedMaterial({ color: 0xef4444, dashSize: 0.5, gapSize: 0.3, linewidth: 2 });
+      const boxMesh = new THREE.LineSegments(boxGeo, boxMat);
+      boxMesh.computeLineDistances(); 
+      boxMesh.rotation.x = -Math.PI / 2;
+      boxMesh.position.y = 0.1; 
+      scene.add(boxMesh);
+
+      const ldcMat = new THREE.MeshBasicMaterial({ 
+        color: 0x128642,
+        transparent: true, 
+        opacity: 0.08, 
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: 0x128642,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.5
+      });
+
+      // Construct customized LDC geometry
+      let ldcGeo;
+      if (fixture.candelaC0 && fixture.candelaC90) {
+        ldcGeo = new THREE.SphereGeometry(1, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+        const pos = ldcGeo.attributes.position;
+        const maxCandela = Math.max(...fixture.candelaC90);
+        const scaleFactor = height / maxCandela;
+        
+        for (let i = 0; i < pos.count; i++) {
+            const vx = pos.getX(i);
+            const vy = pos.getY(i);
+            const vz = pos.getZ(i);
+            
+            const rBase = Math.sqrt(vx*vx + vy*vy + vz*vz);
+            const thetaRad = Math.acos(vy / rBase); 
+            const phiRad = Math.atan2(vx, vz);
+            
+            const candela = getCandelaVal(thetaRad, phiRad, fixture);
+            const rNew = candela * scaleFactor;
+            
+            pos.setXYZ(i, (vx/rBase) * rNew, -(vy/rBase) * rNew, (vz/rBase) * rNew);
+        }
+        ldcGeo.computeVertexNormals();
+      } else {
+        const scaleFactor = height / fixture.candela[0]; 
+        const points = [];
+        for (let k = fixture.candela.length - 1; k >= 0; k--) {
+          const angleRad = (k * fixture.step) * Math.PI / 180;
+          const r = fixture.candela[k] * scaleFactor;
+          const ptX = r * Math.sin(angleRad);
+          const ptY = -r * Math.cos(angleRad);
+          points.push(new THREE.Vector2(ptX, ptY));
+        }
+        ldcGeo = new THREE.LatheGeometry(points, 32);
+      }
+
+      const intensity = Math.max(1.5, fixture.lumen / 6000); 
+      const beamAngle = fixture.beamAngle;
+
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          const x = i * spacingX;
+          const z = j * spacingY;
+
+          let fixGeo;
+          if (fixture.shape === 'linear') {
+             fixGeo = new THREE.BoxGeometry(0.15, 0.1, fixture.length); 
+          } else {
+             fixGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.2, 16);
+          }
+          
+          const fixMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8 });
+          const fixtureMesh = new THREE.Mesh(fixGeo, fixMat);
+          fixtureMesh.position.set(x, height, z);
+          scene.add(fixtureMesh);
+
+          const spotLight = new THREE.SpotLight(0xffffff, intensity);
+          spotLight.position.set(x, height, z);
+          spotLight.angle = beamAngle;
+          spotLight.penumbra = 0.4;
+          spotLight.decay = 1.5;
+          spotLight.distance = height * 4;
+          spotLight.castShadow = true;
+          spotLight.shadow.mapSize.width = 1024;
+          spotLight.shadow.mapSize.height = 1024;
+
+          const target = new THREE.Object3D();
+          target.position.set(x, 0, z);
+          scene.add(target);
+          spotLight.target = target;
+          scene.add(spotLight);
+
+          const ldcMesh = new THREE.Mesh(ldcGeo, ldcMat);
+          ldcMesh.position.set(x, height, z);
+          scene.add(ldcMesh);
+
+          const wireMesh = new THREE.Mesh(ldcGeo, wireMat);
+          wireMesh.position.set(x, height, z);
+          scene.add(wireMesh);
+        }
+      }
+
+      const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+      scene.add(ambient);
+
+      let theta = Math.PI / 4;
+      let phi = Math.PI / 3;
+      let radius = Math.max(Math.max(spacingX, spacingY) * 5.5, height * 3.5, 40);
+      
+      const updateCamera = () => {
+        camera.position.x = radius * Math.sin(phi) * Math.sin(theta);
+        camera.position.y = radius * Math.cos(phi);
+        camera.position.z = radius * Math.sin(phi) * Math.cos(theta);
+        camera.lookAt(0, 0, 0);
+      };
+      updateCamera();
+
+      let isDragging = false;
+      let prevPos = { x: 0, y: 0 };
+
+      const onMouseDown = (e) => {
+        isDragging = true;
+        prevPos = { x: e.clientX, y: e.clientY };
+      };
+      const onMouseUp = () => isDragging = false;
+      const onMouseMove = (e) => {
+        if (!isDragging) return;
+        const delta = { x: e.clientX - prevPos.x, y: e.clientY - prevPos.y };
+        theta -= delta.x * 0.01;
+        phi -= delta.y * 0.01;
+        phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, phi)); 
+        updateCamera();
+        prevPos = { x: e.clientX, y: e.clientY };
+      };
+      
+      const onWheel = (e) => {
+        e.preventDefault();
+        radius += e.deltaY * 0.05;
+        radius = Math.max(5, Math.min(150, radius));
+        updateCamera();
+      };
+
+      container.addEventListener('mousedown', onMouseDown);
+      container.addEventListener('mouseup', onMouseUp);
+      container.addEventListener('mouseleave', onMouseUp);
+      container.addEventListener('mousemove', onMouseMove);
+      container.addEventListener('wheel', onWheel, { passive: false });
+
+      resizeObserver = new ResizeObserver(() => {
+        if (!container || !camera || !renderer) return;
+        const w = container.clientWidth || 800;
+        const h = container.clientHeight || 500;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      });
+      resizeObserver.observe(container);
+
+      const animate = () => {
+        if (!active) return;
+        animationId = requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      };
+      animate();
+    };
+
+    if (window.THREE) {
+      initScene(window.THREE);
+    } else {
+      const script = document.createElement('script');
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+      script.onload = () => { if (active) initScene(window.THREE); };
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      active = false;
+      if (animationId) cancelAnimationFrame(animationId);
+      if (resizeObserver && container) resizeObserver.unobserve(container);
+      if (renderer) renderer.dispose();
+    };
+  }, [height, spacingX, spacingY, fixture]);
+
+  return (
+    <div className="w-full h-full relative rounded-lg overflow-hidden bg-white border border-gray-300">
+      <div ref={containerRef} className="w-full h-full cursor-move" />
+      <div className="absolute top-2 left-2 bg-gray-50/80 backdrop-blur text-xs px-2 py-1 rounded text-gray-700 border border-gray-300 pointer-events-none shadow-sm flex flex-col gap-1">
+        <span>3x3 Grid Layout</span>
+        <span className="text-[10px] text-red-400 font-bold tracking-wide">Striped Red: Interior Bounds</span>
+      </div>
+      <div className="absolute bottom-2 left-2 bg-gray-50/80 backdrop-blur text-xs px-2 py-1 rounded text-gray-500 border border-gray-300 pointer-events-none shadow-sm">
+        Drag to rotate • Scroll to zoom
+      </div>
+    </div>
+  );
+};
+
+const PolarChart = ({ fixture }) => {
+  const dataC90 = fixture.candelaC90 || fixture.candela;
+  const dataC0 = fixture.candelaC0; 
+  const maxCandela = Math.max(...dataC90);
+  const ringStep = Math.ceil(maxCandela / 3 / 1000) * 1000 || 1000;
+  
+  const generatePath = (data, side) => {
+    let path = 'M 0 0 ';
+    data.forEach((val, i) => {
+      const angleDeg = i * fixture.step;
+      const angleRad = (side === 'left' ? -angleDeg : angleDeg) * Math.PI / 180;
+      const r = (val / (ringStep * 3)) * 120;
+      const x = r * Math.sin(angleRad);
+      const y = r * Math.cos(angleRad);
+      path += `L ${x} ${y} `;
+    });
+    return path;
+  };
+
+  return (
+    <div className="w-full h-full flex items-center justify-center">
+      <svg viewBox="-140 -20 280 160" preserveAspectRatio="xMidYMid meet" className="w-full h-full max-h-full">
+        {[ringStep, ringStep * 2, ringStep * 3].map(val => {
+          const r = (val / (ringStep * 3)) * 120;
+          return (
+            <g key={val}>
+              <circle cx="0" cy="0" r={r} fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="4 4" />
+              <text x={r + 2} y="10" fontSize="8" fill="#64748b">{val} cd</text>
+            </g>
+          );
+        })}
+        {[-90, -60, -30, 0, 30, 60, 90].map(angle => {
+          const rad = angle * Math.PI / 180;
+          return (
+            <line key={angle} x1="0" y1="0" x2={130 * Math.sin(rad)} y2={130 * Math.cos(rad)} stroke="#334155" strokeWidth="1" />
+          )
+        })}
+        <path d={generatePath(dataC90, 'right')} fill="rgba(18, 134, 66, 0.15)" stroke="#128642" strokeWidth="2" />
+        <path d={generatePath(dataC90, 'left')} fill="rgba(18, 134, 66, 0.15)" stroke="#128642" strokeWidth="2" />
+        
+        {dataC0 && (
+          <>
+            <path d={generatePath(dataC0, 'right')} fill="none" stroke="#3aaa6a" strokeWidth="2" strokeDasharray="4 4" />
+            <path d={generatePath(dataC0, 'left')} fill="none" stroke="#3aaa6a" strokeWidth="2" strokeDasharray="4 4" />
+          </>
+        )}
+      </svg>
+    </div>
+  );
+};
+
+const DepreciationChart = ({ stats, targetLux, fixture, isGeneratingPDF }) => {
+  const width = 800;
+  const height = 350; 
+  const padding = { top: 20, right: 30, bottom: 80, left: 50 }; 
+  
+  const innerW = width - padding.left - padding.right;
+  const innerH = height - padding.top - padding.bottom;
+  const maxHours = 120000;
+  
+  const avgLuxOverall = stats.overall.avg;
+  const avgLuxInterior = stats.interior.avg;
+  const maxY = Math.max(avgLuxInterior * 1.1, avgLuxOverall * 1.1, targetLux * 1.2, 100);
+
+  let pathOverall = '';
+  let pathInterior = '';
+
+  for(let t = 0; t <= maxHours; t += 2000) {
+    const lOverall = avgLuxOverall * Math.exp(-fixture.alpha * t);
+    const lInterior = avgLuxInterior * Math.exp(-fixture.alpha * t);
+    
+    const x = padding.left + (t / maxHours) * innerW;
+    
+    const yOverall = padding.top + innerH - (lOverall / maxY) * innerH;
+    if (t === 0) pathOverall += `M ${x} ${yOverall} `;
+    else pathOverall += `L ${x} ${yOverall} `;
+
+    const yInterior = padding.top + innerH - (lInterior / maxY) * innerH;
+    if (t === 0) pathInterior += `M ${x} ${yInterior} `;
+    else pathInterior += `L ${x} ${yInterior} `;
+  }
+
+  let crossingTime = 0;
+  if (avgLuxInterior > targetLux) {
+    crossingTime = -Math.log(targetLux / avgLuxInterior) / fixture.alpha;
+  }
+  const crossingValid = crossingTime > 0 && crossingTime <= maxHours;
+  const cx = padding.left + (crossingTime / maxHours) * innerW;
+  const ty = padding.top + innerH - (targetLux / maxY) * innerH;
+
+  return (
+    <div className={`w-full flex items-center justify-center relative ${isGeneratingPDF ? '' : 'h-full'}`} style={{position:'relative'}}>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="block text-xs font-sans" style={{ width:"100%", height:"auto", display:"block", overflow:"hidden" }}>
+        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke="#475569" strokeWidth="2" />
+        <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke="#475569" strokeWidth="2" />
+        
+        {[0, 0.25, 0.5, 0.75, 1].map(frac => {
+          const val = frac * maxY;
+          const y = padding.top + innerH - frac * innerH;
+          return (
+            <g key={frac}>
+              <line x1={padding.left - 5} y1={y} x2={width - padding.right} y2={y} stroke="#334155" strokeDasharray={frac===0?"":"4 4"} />
+              <text x={padding.left - 10} y={y + 4} fill="#6b7280" textAnchor="end">{Math.round(val)}</text>
+            </g>
+          )
+        })}
+
+        {[0, 25000, 50000, 75000, 100000, 120000].map(h => {
+          const x = padding.left + (h / maxHours) * innerW;
+          return (
+            <g key={h}>
+              <line x1={x} y1={height - padding.bottom} x2={x} y2={height - padding.bottom + 5} stroke="#475569" />
+              <text x={x} y={height - padding.bottom + 25} fill="#6b7280" textAnchor="middle">{(h/1000)}k hrs</text>
+            </g>
+          )
+        })}
+
+        <path d={pathOverall} fill="none" stroke="#64748b" strokeWidth="2" strokeDasharray="4 4" />
+        <text x={padding.left + 10} y={padding.top + 25} fill="#64748b">Overall Area</text>
+
+        <path d={pathInterior} fill="none" stroke="#1a5fa8" strokeWidth="3" />
+        <text x={padding.left + 10} y={padding.top + 10} fill="#3b82f6" fontWeight="bold">Core Interior Area</text>
+
+        <line x1={padding.left} y1={ty} x2={width - padding.right} y2={ty} stroke="#ef4444" strokeWidth="2" strokeDasharray="6 4" />
+        <text x={width - padding.right - 10} y={ty - 8} fill="#ef4444" textAnchor="end" fontWeight="bold">Target: {targetLux} Lux</text>
+
+        {crossingValid && (
+          <g>
+            <circle cx={cx} cy={ty} r="5" fill="#ef4444" />
+            <line x1={cx} y1={ty} x2={cx} y2={height - padding.bottom} stroke="#ef4444" strokeWidth="1" strokeDasharray="4 4" />
+            <rect x={cx - 40} y={height - padding.bottom - 40} width="80" height="24" rx="4" fill="#1e293b" stroke="#ef4444" />
+            <text x={cx} y={height - padding.bottom - 24} fill="#f8fafc" textAnchor="middle" fontWeight="bold">
+              {Math.round(crossingTime).toLocaleString()}h
+            </text>
+          </g>
+        )}
+      </svg>
+    </div>
+  );
+};
+
+const KpiRow = ({ title, stats, yearsToFailure, isInterior, isGeneratingPDF }) => {
+  const cardBase = `border rounded-xl flex flex-col justify-between shadow-sm transition-colors ${isInterior ? 'bg-blue-900/10 border-blue-800/50' : 'bg-gray-50 border-gray-200'}`;
+  const cardPad  = isGeneratingPDF ? 'p-3' : 'p-4';
+  const cardH    = isGeneratingPDF ? {} : { minHeight: '80px' };
+  const labelCls = `text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-2`;
+  const valueCls = `text-2xl font-bold leading-none ${isInterior ? 'text-blue-600' : 'text-gray-800'}`;
+  return (
+    <div className={`${isGeneratingPDF ? 'mt-2 space-y-1' : 'mt-4 space-y-2'}`}>
+      <h3 className={`${isGeneratingPDF ? 'text-[11px]' : 'text-sm'} font-semibold text-gray-600 flex items-center gap-2`}>
+        {isInterior
+          ? <div className="w-3 h-3 border border-red-400 border-dashed rounded-sm shrink-0" />
+          : <Grid size={14} className="text-gray-400 shrink-0" />}
+        {title}
+      </h3>
+      <div className={`grid grid-cols-2 md:grid-cols-4 ${isGeneratingPDF ? 'gap-2' : 'gap-3'}`}>
+        <div className={`${cardBase} ${cardPad}`} style={cardH}>
+          <div className={labelCls}>Day 1 Avg Lux</div>
+          <div className={valueCls}>{Math.round(stats.avg)}</div>
+        </div>
+        <div className={`${cardBase} ${cardPad}`} style={cardH}>
+          <div className={labelCls}>Uniformity (Min/Avg)</div>
+          <div className={valueCls}>{stats.avg > 0 ? (stats.min / stats.avg).toFixed(2) : '0.00'}</div>
+        </div>
+        <div className={`${cardBase} ${cardPad}`} style={cardH}>
+          <div className={labelCls}>Max Lux</div>
+          <div className={valueCls}>{Math.round(stats.max)}</div>
+        </div>
+        <div className={`${cardBase} ${cardPad}`} style={cardH}>
+          <div className={labelCls}>Est. Maint. Cycle</div>
+          <div className="text-2xl font-bold leading-none text-red-400">{yearsToFailure > 0 ? `${yearsToFailure.toFixed(1)} yrs` : 'Fail'}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+function App() {
+  const [modelId, setModelId] = useState('g5');
+  const [lumenId, setLumenId] = useState('15k');
+  const [beamId, setBeamId] = useState('wb');
+  const [height, setHeight] = useState(10.0);
+  const [spacingX, setSpacingX] = useState(10);
+  const [spacingY, setSpacingY] = useState(10);
+  const [targetLux, setTargetLux] = useState(75);
+  const [viewMode, setViewMode] = useState('2d');
+  const [stats, setStats] = useState({ 
+    overall: { avg: 0, min: 0, max: 0 },
+    interior: { avg: 0, min: 0, max: 0 }
+  });
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+
+  const handleModelChange = (newModel) => {
+    setModelId(newModel);
+    const validLumens = Object.keys(FIXTURE_MODELS[newModel].lumens);
+    const newLumen = validLumens[0];
+    setLumenId(newLumen);
+    const validBeams = Object.keys(FIXTURE_MODELS[newModel].lumens[newLumen].beams);
+    setBeamId(validBeams[0]);
+    if (newModel === 'wt120c') {
+      setHeight(3.0); setSpacingX(5); setSpacingY(5);
+    } else {
+      setHeight(10.0); setSpacingX(10); setSpacingY(10);
+    }
+  };
+
+  const handleLumenChange = (newLumen) => {
+    setLumenId(newLumen);
+    const validBeams = Object.keys(FIXTURE_MODELS[modelId].lumens[newLumen].beams);
+    if (!validBeams.includes(beamId)) setBeamId(validBeams[0]);
+  };
+
+  const fixtureDef = useMemo(() => {
+    const currentModel = FIXTURE_MODELS[modelId];
+    const currentLumen = currentModel.lumens[lumenId];
+    const currentBeam = currentLumen.beams[beamId];
+    return {
+       id: `${modelId}_${lumenId}_${beamId}`,
+       name: currentModel.name,
+       desc: currentModel.desc,
+       alpha: currentModel.alpha,
+       shape: currentModel.shape,
+       length: currentLumen.length || 0,
+       candela: currentBeam.candela || currentBeam.data,
+       candelaC0: currentBeam.candelaC0,
+       candelaC90: currentBeam.candelaC90,
+       step: currentBeam.step,
+       beamAngle: currentBeam.angle,
+       beamName: currentBeam.name,
+       lumenName: currentLumen.name,
+       lumen: parseInt(lumenId.replace('k', '000').replace('s', '000')) || 15000
+    };
+  }, [modelId, lumenId, beamId]);
+
+  const yearsToFailureOverall = useMemo(() => {
+    if (stats.overall.avg <= targetLux) return 0;
+    return (-Math.log(targetLux / stats.overall.avg) / fixtureDef.alpha) / (12 * 365);
+  }, [stats.overall.avg, targetLux, fixtureDef.alpha]);
+
+  const yearsToFailureInterior = useMemo(() => {
+    if (stats.interior.avg <= targetLux) return 0;
+    return (-Math.log(targetLux / stats.interior.avg) / fixtureDef.alpha) / (12 * 365);
+  }, [stats.interior.avg, targetLux, fixtureDef.alpha]);
+
+  const handleDownloadPDF = async () => {
+    window.scrollTo(0, 0);
+    setIsGeneratingPDF(true);
+    try {
+      if (!window.html2pdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error("Failed to load html2pdf"));
+          document.head.appendChild(script);
+        });
+      }
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        const element = document.getElementById('report-container');
+        const opt = {
+          margin: [15, 0, 15, 0],
+          filename: `Lighting_Report_${fixtureDef.name.replace(/[^a-z0-9]/gi, '_')}.pdf`,
+          image: { type: 'jpeg', quality: 1.0 },
+          html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', windowWidth: 800, width: 800, x: 0, y: 0, scrollY: 0, scrollX: 0 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        window.html2pdf().set(opt).from(element).save()
+          .then(() => setIsGeneratingPDF(false))
+          .catch((err) => { console.error('PDF error:', err); setIsGeneratingPDF(false); });
+      }, 1500);
+    } catch (err) {
+      console.error("PDF Failed", err);
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const ChevronRight = () => (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  );
+
+  return (
+    <div className="min-h-screen font-sans text-gray-800" style={{background:'#f3f4f6'}}>
+
+      {/* PDF Overlay */}
+      {isGeneratingPDF && (
+        <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center" style={{background:'rgba(255,255,255,0.92)'}}>
+          <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{borderColor:'#15803d', borderTopColor:'transparent'}}></div>
+          <h2 className="text-xl font-bold text-gray-900">Generating PDF Report...</h2>
+          <p className="text-gray-500 mt-2">Processing high-resolution charts and lighting data.</p>
+        </div>
+      )}
+
+      {/* ========== BROWSER MODE ========== */}
+      {!isGeneratingPDF && (
+        <>
+          {/* Page Header */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="max-w-screen-xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {!logoError ? (
+                  <img
+                    src="https://energy-led.co.za/wp-content/uploads/2025/04/energy-led-logo1.png"
+                    alt="Energy LED"
+                    onError={() => setLogoError(true)}
+                    style={{height:'32px', width:'auto', display:'block'}}
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{background:'#15803d'}}>
+                    <Sun size={18} style={{color:'white'}} />
+                  </div>
+                )}
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Light Simulator</h1>
+                  <p className="text-sm text-gray-500">Simulate illuminance distribution using real IES photometric data.</p>
+                </div>
+              </div>
+              <button
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPDF}
+                className="flex items-center gap-2 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
+                style={{background:'#15803d'}}
+              >
+                <Download size={15} />
+                Download PDF
+              </button>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="px-6 py-5 max-w-screen-xl mx-auto">
+
+            {/* Section 1 — Fixture Family */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-white text-[11px] font-bold px-2 py-0.5 rounded" style={{background:'#111827'}}>1</span>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">SELECT FIXTURE FAMILY</span>
+                <ChevronRight />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {Object.entries(FIXTURE_MODELS).map(([key, m]) => (
+                  <button
+                    key={key}
+                    onClick={() => handleModelChange(key)}
+                    className="px-4 py-2 text-sm font-medium rounded-lg border transition-all"
+                    style={modelId === key
+                      ? {background:'#15803d', borderColor:'#15803d', color:'white'}
+                      : {background:'white', borderColor:'#d1d5db', color:'#4b5563'}}
+                  >{m.name}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Two-column layout */}
+            <div className="grid gap-4" style={{gridTemplateColumns:'280px 1fr', alignItems:'start'}}>
+
+              {/* ===== LEFT: Simulator Parameters ===== */}
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
+                  <Settings size={15} style={{color:'#15803d'}} />
+                  <span className="text-sm font-bold text-gray-800">Simulator Parameters</span>
+                </div>
+                <div className="p-4">
+
+                  {/* Beam Distribution */}
+                  <div className="mb-4">
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Beam Distribution</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {Object.entries(FIXTURE_MODELS[modelId].lumens[lumenId].beams).map(([key, b]) => (
+                        <button
+                          key={key}
+                          onClick={() => setBeamId(key)}
+                          className="py-2 px-2 rounded-lg text-xs font-medium border transition-all"
+                          style={beamId === key
+                            ? {background:'#15803d', borderColor:'#15803d', color:'white'}
+                            : {background:'#f9fafb', borderColor:'#e5e7eb', color:'#6b7280'}}
+                        >{b.name}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Est. Life */}
+                  <div className="flex items-center gap-2 rounded-lg px-3 py-2 mb-4" style={{background:'#f9fafb', border:'1px solid #f3f4f6'}}>
+                    <Info size={13} style={{color:'#9ca3af', flexShrink:0}} />
+                    <p className="text-xs text-gray-500">Est. Life: {fixtureDef.desc}</p>
+                  </div>
+
+                  {/* Mounting & Spacing */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+                      <ArrowDownToLine size={11} /> Mounting &amp; Spacing
+                    </p>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-xs text-gray-500">Mounting Height</span>
+                          <span className="text-xs font-bold" style={{color:'#15803d'}}>{height.toFixed(1)} m</span>
+                        </div>
+                        <input type="range" min="2" max="25" step="0.1" value={height}
+                          onChange={e => setHeight(parseFloat(e.target.value))}
+                          className="w-full appearance-none cursor-pointer accent-green-700"
+                          style={{height:'6px', borderRadius:'9999px', background:'#e5e7eb'}} />
+                        <p className="text-[10px] text-gray-400 text-right mt-0.5">0.75m Ref. Plane Calculated</p>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-xs text-gray-500">Luminaire Spacing (In Row)</span>
+                          <span className="text-xs font-bold text-blue-600">{spacingX} m</span>
+                        </div>
+                        <input type="range" min="3" max="30" step="0.5" value={spacingX}
+                          onChange={e => setSpacingX(parseFloat(e.target.value))}
+                          className="w-full appearance-none cursor-pointer accent-blue-600"
+                          style={{height:'6px', borderRadius:'9999px', background:'#e5e7eb'}} />
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-xs text-gray-500">Row Spacing (Distance)</span>
+                          <span className="text-xs font-bold text-indigo-600">{spacingY} m</span>
+                        </div>
+                        <input type="range" min="3" max="30" step="0.5" value={spacingY}
+                          onChange={e => setSpacingY(parseFloat(e.target.value))}
+                          className="w-full appearance-none cursor-pointer accent-indigo-600"
+                          style={{height:'6px', borderRadius:'9999px', background:'#e5e7eb'}} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Performance Target */}
+                  <div className="border-t border-gray-100 pt-4 mt-4">
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+                      <Activity size={11} /> Performance Target
+                    </p>
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-xs text-gray-500">Target Lux (Maint.)</span>
+                        <span className="text-xs font-bold text-red-400">{targetLux}</span>
+                      </div>
+                      <input type="range" min="50" max="500" step="25" value={targetLux}
+                        onChange={e => setTargetLux(parseInt(e.target.value))}
+                        className="w-full appearance-none cursor-pointer accent-red-500"
+                        style={{height:'6px', borderRadius:'9999px', background:'#e5e7eb'}} />
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* ===== RIGHT: Results Panel ===== */}
+              <div className="space-y-4">
+
+                {/* Section 2 — Lumen Output */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-white text-[11px] font-bold px-2 py-0.5 rounded" style={{background:'#111827'}}>2</span>
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">SELECT LUMEN OUTPUT</span>
+                    <ChevronRight />
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {Object.entries(FIXTURE_MODELS[modelId].lumens).map(([key, l]) => (
+                      <button
+                        key={key}
+                        onClick={() => handleLumenChange(key)}
+                        className="px-4 py-2 text-sm font-medium rounded-lg border transition-all"
+                        style={lumenId === key
+                          ? {background:'#15803d', borderColor:'#15803d', color:'white'}
+                          : {background:'white', borderColor:'#d1d5db', color:'#4b5563'}}
+                      >{l.name}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Results Card */}
+                <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
+
+                  {/* Info Box */}
+                  <div className="rounded-lg p-4" style={{background:'#f9fafb', border:'1px solid #e5e7eb'}}>
+                    <div className="flex items-start gap-3">
+                      <Info size={18} style={{color:'#15803d', flexShrink:0, marginTop:'2px'}} />
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-800 mb-1">Why evaluate the Core Interior Area?</h3>
+                        <p className="text-xs text-gray-500 leading-relaxed">
+                          In a real-world layout, the lighting grid extends continuously across the ceiling. Simulating only a standalone 3×3 sample creates dark "edge drop-offs" on the outer perimeter, artificially lowering the average lux. By isolating the <strong className="text-gray-700">Core Interior Area</strong> (bounded between the outer fixtures, marked by the <span style={{display:'inline-block',width:'20px',borderTop:'1.5px dashed #f87171',verticalAlign:'middle',margin:'0 2px'}}></span> red dashed lines), we eliminate these false edges for an accurate operational representation.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <KpiRow title="Overall Area (Including Outer Edges)" stats={stats.overall} yearsToFailure={yearsToFailureOverall} isInterior={false} isGeneratingPDF={false} />
+                  <KpiRow title="Core Interior Area (Continuous Grid Simulation)" stats={stats.interior} yearsToFailure={yearsToFailureInterior} isInterior={true} isGeneratingPDF={false} />
+                </div>
+
+                {/* Floor Layout & LDC */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-5 flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-sm font-semibold text-gray-700">Floor Layout Illumination (3×3 Grid)</h2>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setViewMode('2d')}
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors"
+                          style={viewMode === '2d'
+                            ? {background:'rgba(21,128,61,0.12)', color:'#15803d', border:'1px solid rgba(21,128,61,0.3)'}
+                            : {background:'#f3f4f6', color:'#6b7280'}}
+                        >
+                          <Grid size={13} /> 2D Map
+                        </button>
+                        <button
+                          onClick={() => setViewMode('3d')}
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors"
+                          style={viewMode === '3d'
+                            ? {background:'rgba(21,128,61,0.12)', color:'#15803d', border:'1px solid rgba(21,128,61,0.3)'}
+                            : {background:'#f3f4f6', color:'#6b7280'}}
+                        >
+                          <Box size={13} /> 3D Room
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-h-[350px] relative">
+                      <div className={viewMode === '2d' ? 'w-full h-full' : 'hidden'}>
+                        <Heatmap height={height} spacingX={spacingX} spacingY={spacingY} fixture={fixtureDef} targetLux={targetLux} onStatsChange={setStats} />
+                      </div>
+                      {viewMode === '3d' && (
+                        <div className="w-full h-full">
+                          <ThreeDView height={height} spacingX={spacingX} spacingY={spacingY} fixture={fixtureDef} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col">
+                    <h2 className="text-sm font-semibold text-gray-700 mb-4">Luminous Data (LDC)</h2>
+                    <div className="flex-1 flex flex-col items-center justify-center min-h-[300px] border border-gray-200 rounded-lg p-4" style={{background:'#f9fafb'}}>
+                      <PolarChart fixture={fixtureDef} />
+                      <div className="mt-4 text-center">
+                        <div className="text-sm font-medium text-gray-700">{fixtureDef.beamName}</div>
+                        <div className="text-xs text-gray-400 max-w-[200px] mx-auto mt-1">
+                          {fixtureDef.candelaC0 ? 'Dual C0 & C90 plane candela curve from ' : 'Cross-section candela curve from '}{fixtureDef.name} IES profile.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Depreciation Chart */}
+                <div className="bg-white border border-gray-200 rounded-xl p-5" style={{position:'relative', overflow:'hidden'}}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-gray-700">Lifetime Lumen Depreciation Extrapolated</h2>
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2">
+                        <div style={{width:'16px', height:'0', borderTop:'2px dashed #64748b'}}></div>
+                        <span className="text-xs text-gray-500">Overall Avg</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div style={{width:'16px', height:'4px', borderRadius:'2px', background:'#15803d'}}></div>
+                        <span className="text-xs text-gray-500">Interior Avg</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div style={{width:'12px', height:'12px', borderRadius:'50%', background:'#ef4444'}}></div>
+                        <span className="text-xs text-gray-500">Target Lux</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-2" style={{background:'#f9fafb', position:'relative'}}>
+                    <DepreciationChart stats={stats} targetLux={targetLux} fixture={fixtureDef} isGeneratingPDF={false} />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-4 text-center">
+                    Based on empirical test data predicting {fixtureDef.desc}. Calculation uses an exponential fit decay model: α = {fixtureDef.alpha.toExponential(3)}.
+                  </p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ========== PDF MODE ========== */}
+      {isGeneratingPDF && (
+        <div id="report-container" className="w-[800px] box-border px-8 py-4 bg-white text-gray-800 mx-auto">
+
+          {/* PAGE 1 */}
+          <div className="w-full">
+            <div className="flex justify-between items-end border-b-2 border-gray-200 pb-2">
+              <div className="flex flex-col items-start">
+                {!logoError ? (
+                  <div className="bg-white p-2 rounded-lg mb-2 inline-block">
+                    <img src="https://energy-led.co.za/wp-content/uploads/2025/04/energy-led-logo1.png" alt="Energy LED" crossOrigin="anonymous" style={{height:'40px', width:'auto', display:'block'}} onError={() => setLogoError(true)} />
+                  </div>
+                ) : (
+                  <div className="text-2xl font-bold mb-2" style={{color:'#15803d'}}>Energy LED</div>
+                )}
+                <h1 className="text-xl font-bold text-gray-900">Lighting Simulation Report</h1>
+              </div>
+              <div className="text-right text-gray-500 mb-1">
+                <p className="font-bold text-lg" style={{color:'#15803d'}}>{fixtureDef.name}</p>
+                <p className="text-xs mt-1">Generated: {new Date().toLocaleDateString()}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mt-4 bg-gray-50 border border-gray-200 rounded-xl p-3">
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 border-b border-gray-200 pb-1">Configuration Inputs</h3>
+                <dl className="space-y-1.5 text-sm">
+                  <div className="flex justify-between"><dt className="text-gray-500">Luminaire Model:</dt><dd className="font-semibold text-gray-900">{fixtureDef.name}</dd></div>
+                  <div className="flex justify-between"><dt className="text-gray-500">Lumen Output:</dt><dd className="font-semibold text-gray-900">{fixtureDef.lumenName}</dd></div>
+                  <div className="flex justify-between"><dt className="text-gray-500">Beam Distribution:</dt><dd className="font-semibold text-gray-900">{fixtureDef.beamName}</dd></div>
+                  <div className="flex justify-between"><dt className="text-gray-500">Mounting Height:</dt><dd className="font-semibold text-gray-900">{height.toFixed(1)}m <span className="text-gray-400 font-normal">(0.75m Ref Plane)</span></dd></div>
+                  <div className="flex justify-between"><dt className="text-gray-500">Grid Spacing:</dt><dd className="font-semibold text-gray-900">{spacingX}m × {spacingY}m</dd></div>
+                  <div className="flex justify-between"><dt className="text-gray-500">Target Lux:</dt><dd className="font-semibold text-gray-900">{targetLux} lx</dd></div>
+                </dl>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 border-b border-gray-200 pb-1">Core Interior Results</h3>
+                <dl className="space-y-1.5 text-sm">
+                  <div className="flex justify-between"><dt className="text-gray-500">Day 1 Avg Lux:</dt><dd className="font-bold text-base" style={{color:'#15803d'}}>{Math.round(stats.interior.avg)} lx</dd></div>
+                  <div className="flex justify-between"><dt className="text-gray-500">Uniformity (Min/Avg):</dt><dd className="font-bold text-base" style={{color:'#15803d'}}>{stats.interior.avg > 0 ? (stats.interior.min / stats.interior.avg).toFixed(2) : 0}</dd></div>
+                  <div className="flex justify-between"><dt className="text-gray-500">Max Lux:</dt><dd className="font-bold text-base" style={{color:'#15803d'}}>{Math.round(stats.interior.max)} lx</dd></div>
+                  <div className="flex justify-between"><dt className="text-gray-500">Est. Maint. Cycle:</dt><dd className="font-bold text-red-400 text-base">{yearsToFailureInterior > 0 ? `${yearsToFailureInterior.toFixed(1)} yrs` : 'Fail'}</dd></div>
+                </dl>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 mt-2">
+              <div className="flex items-start gap-3">
+                <Info size={18} style={{color:'#15803d', flexShrink:0, marginTop:'2px'}} />
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-700 mb-1">Why evaluate the Core Interior Area?</h3>
+                  <p className="text-xs leading-relaxed" style={{fontSize:'11px'}}>
+                    In a real-world layout, the lighting grid extends continuously across the ceiling. Simulating only a standalone 3×3 sample naturally creates dark "edge drop-offs" on the outer perimeter, artificially lowering average lux. By isolating the <strong>Core Interior Area</strong> (bounded by the dashed red lines), we eliminate these false edges for a highly accurate day-to-day operational representation.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <KpiRow title="Overall Area (Including Outer Edges)" stats={stats.overall} yearsToFailure={yearsToFailureOverall} isInterior={false} isGeneratingPDF={true} />
+            <KpiRow title="Core Interior Area (Continuous Grid Simulation)" stats={stats.interior} yearsToFailure={yearsToFailureInterior} isInterior={true} isGeneratingPDF={true} />
+          </div>
+
+          <div className="html2pdf__page-break"></div>
+
+          {/* PAGE 2 */}
+          <div className="w-full mt-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 w-full h-[600px]">
+              <h2 className="text-sm font-semibold text-gray-700 mb-4">Floor Layout Illumination (2D)</h2>
+              <div className="w-full h-[520px] relative">
+                <Heatmap height={height} spacingX={spacingX} spacingY={spacingY} fixture={fixtureDef} targetLux={targetLux} onStatsChange={setStats} />
+              </div>
+            </div>
+          </div>
+
+          <div className="html2pdf__page-break"></div>
+
+          {/* PAGE 3 */}
+          <div className="w-full mt-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 w-full h-[600px]">
+              <h2 className="text-sm font-semibold text-gray-700 mb-4">Floor Layout Illumination (3D)</h2>
+              <div className="w-full h-[520px] relative">
+                <ThreeDView height={height} spacingX={spacingX} spacingY={spacingY} fixture={fixtureDef} />
+              </div>
+            </div>
+          </div>
+
+          <div className="html2pdf__page-break"></div>
+
+          {/* PAGE 4 */}
+          <div className="w-full space-y-6 mt-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-gray-700">Lifetime Lumen Depreciation</h2>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2"><div style={{width:'16px',height:'0',borderTop:'2px dashed #64748b'}}></div><span className="text-xs text-gray-500">Overall Avg</span></div>
+                  <div className="flex items-center gap-2"><div style={{width:'16px',height:'4px',borderRadius:'2px',background:'#15803d'}}></div><span className="text-xs text-gray-500">Interior Avg</span></div>
+                  <div className="flex items-center gap-2"><div style={{width:'12px',height:'12px',borderRadius:'50%',background:'#ef4444'}}></div><span className="text-xs text-gray-500">Target Lux</span></div>
+                </div>
+              </div>
+              <div className="w-full bg-white rounded-lg border border-gray-200 p-4">
+                <DepreciationChart stats={stats} targetLux={targetLux} fixture={fixtureDef} isGeneratingPDF={true} />
+              </div>
+              <p className="text-xs text-gray-400 mt-4 text-center">
+                Based on empirical test data predicting {fixtureDef.desc}. Calculation uses an exponential fit decay model: α = {fixtureDef.alpha.toExponential(3)}.
+              </p>
+            </div>
+            <div className="pt-4 border-t-2 border-gray-200 w-full">
+              <h4 className="font-bold text-gray-700 mb-2">Disclaimer</h4>
+              <p className="text-xs text-gray-400 text-justify leading-relaxed">
+                The following values are based on precise calculations performed on calibrated lamps and luminaires, and their configurations, whereby gradual, unavoidable deviations can occur in practice. All guarantee claims are excluded for the specified data. This exclusion of liability applies irrespective of the legal grounds for both damages and consequential damages suffered by users and third parties.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+const container = document.getElementById('root');
+container.innerHTML = '';
+const root = ReactDOM.createRoot(container);
+root.render(React.createElement(App));
+</script>
+</body>
+</html>
